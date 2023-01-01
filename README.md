@@ -1,2 +1,2 @@
-# Tik-Tac-Toe
+# Tic-Tac-Toe
 Written in Python using Tkinter
