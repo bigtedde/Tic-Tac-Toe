@@ -1,5 +1,5 @@
 # Tic-Tac-Toe
-Written by Theodore Lawson
+Written by Ted Lawson
 
 Written in Python using Tkinter
 
