@@ -61,23 +61,26 @@ class TicTacToeGame:
         return no_winner and move_was_not_played
 
     def process_move(self, move):
-        # Process the current move and check if it's a win
-        row, col = move.row, move.col
+        """
+        Process the current move and check if it's a win
 
+        For every possible winning combo, create a set of the labels of each move in this combo
+        If the set is only length 1 (meaning only a single type of label), and that label isn't "",
+        then that must be a winner.
+        """
+        row, col = move.row, move.col
         self._current_moves[row][col] = move
-        """ For every possible winning combo, create a set of the labels of each move in this combo. """
+
         for combo in self._winning_combos:
             results = set(
                 self._current_moves[n][m].label
                 for n, m in combo
             )
-            """ If the set is only length 1 (meaning only a single type of label), and that label isn't "",
-            then that must be a winner. """
             is_win = (len(results) == 1) and ("" not in results)
             if is_win:
                 self._has_winner = True
-            self.winner_combo = combo
-            break
+                self.winner_combo = combo
+                break
 
     def has_winner(self):
         """ Return True if the game has a winner, and False otherwise."""
@@ -98,10 +101,11 @@ class TicTacToeGame:
 
 
 class TicTacToeBoard(tk.Tk):
-    def __init__(self):
+    def __init__(self, game):
         super().__init__()
         self.title("Tic-Tac-Toe Game")
         self._cells = {}
+        self._game = game
         self._create_board_display()
         self._create_board_grid()
 
@@ -119,10 +123,10 @@ class TicTacToeBoard(tk.Tk):
         grid_frame = tk.Frame(master=self)
         grid_frame.pack()
 
-        for row in range(3):
+        for row in range(self._game.board_size):
             self.rowconfigure(row, weight=1, minsize=50)
             self.columnconfigure(row, weight=1, minsize=75)
-            for col in range(3):
+            for col in range(self._game.board_size):
                 button = tk.Button(
                     master=grid_frame,
                     text="",
@@ -133,6 +137,7 @@ class TicTacToeBoard(tk.Tk):
                     highlightbackground="lightblue",
                 )
                 self._cells[button] = (row, col)
+                button.bind("<ButtonPress-1>", self.play)
                 button.grid(
                     row=row,
                     column=col,
@@ -141,9 +146,42 @@ class TicTacToeBoard(tk.Tk):
                     sticky="nsew"
                 )
 
+    def play(self, event):
+        """Handle a player's move."""
+        clicked_btn = event.widget
+        row, col = self._cells[clicked_btn]
+        move = Move(row, col, self._game.current_player.label)
+        if self._game.is_valid_move(move):
+            self._update_button(clicked_btn)
+            self._game.process_move(move)
+            if self._game.is_tied():
+                self._update_display(msg="Tied game!", color="red")
+            elif self._game.has_winner():
+                self._highlight_cells()
+                msg = f'Player "{self._game.current_player.label}" won!'
+                color = self._game.current_player.color
+                self._update_display(msg, color)
+            else:
+                self._game.toggle_player()
+                msg = f"{self._game.current_player.label}'s turn"
+                self._update_display(msg)
+
+    def _update_button(self, clicked_btn):
+        clicked_btn.config(text=self._game.current_player.label)
+        clicked_btn.config(fg=self._game.current_player.color)
+
+    def _update_display(self, msg, color="black"):
+        self.display["text"] = msg
+        self.display["fg"] = color
+
+    def _highlight_cells(self):
+        for button, coordinates in self._cells.items():
+            if coordinates in self._game.winner_combo:
+                button.config(highlightbackground="red")
 
 def main():
-    board = TicTacToeBoard()
+    game = TicTacToeGame()
+    board = TicTacToeBoard(game)
     board.mainloop()
     return
 
